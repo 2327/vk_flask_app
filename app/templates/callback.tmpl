@@ -1,0 +1,19 @@
+{% extends "layout.tmpl" %}
+{% block body %}
+
+callback 
+ 
+{% if user_id %}
+  You said: {{ user_id }}
+{% endif %}
+
+{% if access_token %}
+  You said: {{ access_token }}
+{% endif %}
+
+{% if expires_in %}
+  You said: {{ expires_in }}
+{% endif %}
+
+{% endblock %}
+
