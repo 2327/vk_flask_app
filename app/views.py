@@ -3,6 +3,7 @@ from app import app
 from flask import Flask, render_template, send_from_directory, \
                     redirect, request, Response, stream_with_context, \
                     make_response, flash, url_for
+from datetime import datetime
 import os, sys, json, requests
 from .models import db, User
 
@@ -26,7 +27,7 @@ def callback():
 
     response = requests.get("https://api.vk.com/method/users.get", params={
         "access_token": response["access_token"],
-        "fields": "sex,bdate,about,deactivated",
+        "fields": "about,bdate,nickname,screen_name,sex,deactivated",
         "v": "5.103"
     }).json()
 
@@ -35,14 +36,27 @@ def callback():
 
     vk_user = response.get("response")[0]
 
-    first_name = vk_user["first_name"]
-    last_name = vk_user["last_name"]
-#    external_auth = model.external_account.ExternalAccount.query.filter_by(
-#            type="vk",
-#            external_id=str(vk_user["uid"])
-#        ).one_or_none()
+    user_id = vk_user["id"]
+    user_firstname = vk_user["first_name"]
+    user_lastname = vk_user["last_name"]
 
-    return render_template('callback.tmpl', first_name=first_name, last_name=last_name)
+    auth_type = User.query.filter_by(
+        type="vk",
+        user_id=str(vk_user["id"])
+        ).one_or_none()
+
+    if not auth_type:
+        user = User(
+            type='vk',
+            user_id=user_id,
+            first_name=user_firstname,
+            created=datetime.now(),
+            last_name=user_lastname
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    return render_template('callback.tmpl', first_name=user_firstname, last_name=user_lastname)
 
 
 @app.route('/status')

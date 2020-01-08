@@ -4,11 +4,11 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer,
                    primary_key=True)
-    username = db.Column(db.String(64),
-                         index=False,
-                         unique=True,
-                         nullable=False)
-    email = db.Column(db.String(80),
+    type = db.Column(db.String(64),
+                      index=False,
+                      unique=False,
+                      nullable=False)
+    user_id = db.Column(db.String(64),
                       index=True,
                       unique=True,
                       nullable=False)
@@ -16,14 +16,19 @@ class User(db.Model):
                         index=False,
                         unique=False,
                         nullable=False)
-    bio = db.Column(db.Text,
-                    index=False,
-                    unique=False,
-                    nullable=True)
-    admin = db.Column(db.Boolean,
-                      index=False,
+    first_name = db.Column(db.String(64),
+                      index=True,
+                      unique=False,
+                      nullable=False)
+    last_name = db.Column(db.String(64),
+                      index=True,
                       unique=False,
                       nullable=False)
 
+    __table_args__ = (
+        db.UniqueConstraint("type", "user_id", name="user_id"),
+    )
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
+
