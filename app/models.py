@@ -28,7 +28,7 @@ class User(db.Model):
     __table_args__ = (
         db.UniqueConstraint("type", "user_id", name="user_id"),
     )
-
+'''
     def __repr__(self):
-        return '<User {}>'.format(self.username)
-
+        return '<User666 {}>'.format(self.username)
+'''
