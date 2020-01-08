@@ -1,7 +1,7 @@
 {% extends "layout.tmpl" %}
 {% block body %}
 
-<a href="https://oauth.vk.com/authorize?client_id=7272469&display=page&redirect_uri=https://netmyst.ru/callback&scope=friends,groups,photos,docs,notes,pages,status,wall,notifications&response_type=token&v=5.103">
+<a href="https://oauth.vk.com/authorize?client_id={{vk_app_id}}&response_type=code&redirect_uri=https://netmyst.ru/callback">
 <h1>authorize in vk</h1>
 </a>
 

@@ -1,0 +1,4 @@
+.idea
+.flaskenv
+*.sqlite3
+__pycache__
