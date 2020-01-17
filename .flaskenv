@@ -1,5 +1,9 @@
 VK_APP_ID = 7272469
 VK_SECRET_KEY = '4H5b7q79JVOhQVhknO4K'
+SECRET_KEY = 'vnkdjnfjknfl1232#'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///vk_flask_app.sqlite3'
+SESSION_TYPE = 'sqlalchemy'
+SESSION_SQLALCHEMY = 'sqlite:///vk_flask_app1.sqlite3'
 SESSION_SQLALCHEMY_TABLE = 'sessions'
-SESSION_SQLALCHEMY = 'db'
+SESSION_PERMANENT = True
+PERMANENT_SESSION_LIFETIME = 300
