@@ -80,7 +80,7 @@ def profile():
             user_id=session.get('user_id')
          ).one_or_none()
 
-    return render_template('profile.tmpl', first_name=user.first_name, last_name=user.last_name)
+    return render_template('profile.tmpl', first_name=user.first_name, last_name=user.last_name, user_id=user.user_id)
 
 
 @app.route('/logout')

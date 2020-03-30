@@ -1,48 +1,158 @@
 {% extends "layout.tmpl" %}
 {% block body %}
-Привет, {%- if first_name or last_name%} {{ first_name }} {{ last_name }} {% else %} Неизвестно {% endif %}
+Привет, {%- if first_name or last_name%} {{ first_name }} {{ last_name }} {% else %} {{ user_id }} {% endif %}
 <p>
 <a href="{{ url_for('logout') }}">logout</a>
 </p>
 
-    <h3 style='color: #ccc;font-size: 30px;'>No message yet..</h3>
-    <div class="message_holder"></div>
-
-    <form method="POST">
-      <input type="text" class="username" placeholder="User Name"/>
-      <input type="text" class="message" placeholder="Messages"/>
-      <input type="submit"/>
-    </form>
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js"></script>
-    <script type="text/javascript">
-      var socket = io.connect('http://127.0.0.1:8001', {'path': '/socket.io'});
 
-      socket.on( 'connect', function() {
-        socket.emit( 'my event', {
-          data: 'User Connected',
-          user_id: {{ user_id }}
-        } )
-        var form = $( 'form' ).on( 'submit', function( e ) {
-          e.preventDefault()
-          user_name = '{{ first_name }} {{ last_name }}'
-          let user_input = $( 'input.message' ).val()
-          socket.emit( 'my event', {
-            user_name : user_name,
-            message : user_input
-          } )
-          $( 'input.message' ).val( '' ).focus()
-        } )
-      } )
-      socket.on( 'my response', function( msg ) {
-        console.log( msg )
-        if( typeof msg.user_name !== 'undefined' ) {
-          $( 'h3' ).remove()
-          t
-        }
-      })
+    <script type="text/javascript" charset="utf-8">
+      $(document).ready(function(){
+        var socket = io.connect('https://netmyst.ru/test');
+        socket.on('connect', function() {
+          socket.emit('my event', {data: 'I\'m connected!'});
+          console.log('Websocket connected!');
+        });
+
+        socket.on('my response', function(msg) {
+            $('#log').append('<p>Received: ' + msg.data + '</p>');
+        });
+
+        socket.on('server orginated', function(msg) {
+            alert(msg);
+        });
+
+        socket.on('new_private_message', function(msg) {
+            alert(msg);
+        });
+
+
+        var ping_pong_times = [];
+        var start_time;
+        window.setInterval(function() {
+          start_time = (new Date).getTime();
+          socket.emit('my_ping');
+        }, 1000);
+
+        socket.on('my_pong', function() {
+          var latency = (new Date).getTime() - start_time;
+          ping_pong_times.push(latency);
+          ping_pong_times = ping_pong_times.slice(-30); // keep last 30 samples
+          var sum = 0;
+          for (var i = 0; i < ping_pong_times.length; i++)
+          sum += ping_pong_times[i];
+          $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
+          console.log(sum);
+        });
+
+        socket.emit('my_list', {data: 'get rooms'});
+        socket.on('rooms_list', function(msg) {
+          room_array = msg.data
+          rlen = room_array.length;
+          text = "<ul>";
+            for (i = 0; i < rlen; i++) {
+            text += "<li>" + room_array[i] + "</li>";
+            }
+          text += "</ul>";
+          $('#rooms_list').text('ROOMS: ' + text);
+         console.log(msg.data);
+        });
+
+        $('form#pingio').submit(function(pingio) {
+	    socket.emit('pongio',{ data: "pongio" });
+	    return false;
+        });
+
+        socket.on('pongio1', function(msg) {
+            $('#log').append('<p>Received: ' + msg.data + '</p>');
+        });
+
+        socket.on('my_response', function(msg) {
+            $('#log').append('<p>Received: ' + msg.data + '</p>');
+        });
+
+        $('form#emit').submit(function(event) {
+            socket.emit('my event', {data: $('#emit_data').val()});
+            return false;
+        });
+
+        $('form#broadcast').submit(function(event) {
+            socket.emit('my broadcast event', {data: $('#broadcast_data').val()});
+            return false;
+        });
+
+        $('form#join').submit(function(event) {
+            socket.emit('join', {room: $('#join_room').val(),
+            {%- if first_name %} first_name: '{{ first_name }}', {% endif %}
+            {%- if last_name %} last_name: '{{ last_name }}', {% endif %}
+            {%- if user_id %} user_id: '{{ user_id }}' {% endif %}
+            });
+            return false;
+        });
+
+        $('form#leave').submit(function(event) {
+            socket.emit('leave', {room: $('#leave_room').val()});
+            return false;
+         });
+
+        $('form#send_room').submit(function(event) {
+            socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
+            console.log(event)
+            return false;
+        });
+
+        $('form#close').submit(function(event) {
+            socket.emit('close_room', {room: $('#close_room').val()});
+            return false;
+        });
+
+        $('form#disconnect').submit(function(event) {
+            socket.emit('disconnect_request');
+            return false;
+        });
+    });
     </script>
+    <p><b><div id="rooms_list"></div></b></p>
+    <p>Average ping/pong latency: <b><span id="ping-pong"></span>ms</b></p>
+    <h2>Send:</h2>
+    <form id="emit" method="POST" action='#'>
+        <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+        <input type="submit" value="Echo">
+    </form>
+
+        <form id="pingio" method="POST" action='#'>
+	        <input type="text" name="pingio" id="pingio" placeholder="Message">
+		<input type="submit" value="pingio">
+        </form>
+
+    <form id="broadcast" method="POST" action='#'>
+        <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
+        <input type="submit" value="Broadcast">
+    </form>
+    <form id="join" method="POST" action='#'>
+        <input type="text" name="join_room" id="join_room" placeholder="Room Name">
+        <input type="submit" value="Join Room">
+    </form>
+    <form id="leave" method="POST" action='#'>
+        <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
+        <input type="submit" value="Leave Room">
+    </form>
+    <form id="send_room" method="POST" action='#'>
+        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
+        <input type="text" name="room_data" id="room_data" placeholder="Message">
+        <input type="submit" value="Send to Room">
+    </form>
+    <form id="close" method="POST" action="#">
+        <input type="text" name="close_room" id="close_room" placeholder="Room Name">
+        <input type="submit" value="Close Room">
+    </form>
+    <form id="disconnect" method="POST" action="#">
+        <input type="submit" value="Disconnect">
+    </form>
+    <h2>Receive:</h2>
+    <div id="log"></div>
 
 {% endblock %}
 

@@ -1,21 +1,31 @@
 from flask import Flask, render_template, request, session
 from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room, \
     close_room, rooms, disconnect
+from flask_cors import CORS, cross_origin
+
+from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'vnkdjnfjknfl1232#'
-socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, origins='*')
+# CORS(app, resources={r"/api/*": {"origins": "*"}})
+# cors = CORS(app, resources={r"/api/*": {"origins": "localhost:3000/*"}})
 
-# def background_thread():
-#     """Example of how to send server generated events to clients."""
-#     count = 0
-#     while True:
-#         socketio.sleep(10)
-#         count += 1
-#         print('1')
-#         socketio.emit('my_response',
-#                       {'data': 'Server generated event', 'count': count},
-#                       namespace='/test')
+socketio = SocketIO(app, cors_allowed_origins="*")
+ROOMS = []
+
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+def background_thread():
+    """Example of how to send server generated events to clients."""
+    count = 0
+    while True:
+        socketio.sleep(10)
+        count += 1
+        print(ROOMS, count)
+        socketio.emit('my_response',
+                      {'data': 'Server generated event', 'count': count},
+                      namespace='/test')
 
 # @app.route('/socket.io')
 # def sessions():
@@ -65,12 +75,29 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 @app.route('/test')
+@cross_origin()
 def index():
     return render_template('ping.html')
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
     emit('my response', {'data': 'Connected'})
+
+@socketio.on('my_ping', namespace='/test')
+def latency():
+    message = round(datetime.utcnow().timestamp())
+    print(message)
+    emit('my_pong', {'data': message})
+
+@socketio.on('my_list', namespace='/test')
+def my_list(message):
+    print('444: ', message)
+    print('555: ', ROOMS)
+    emit('rooms_list', {'data': ROOMS})
+
+@socketio.on('my event', namespace='/test')
+def test_message(message):
+    emit('my response', {'data': message['data']})
 
 @socketio.on('disconnect_request', namespace='/test')
 def test_disconnect():
@@ -97,15 +124,31 @@ def test_message(message):
 def test_message(message):
     emit('my response', {'data': message['data']}, broadcast=True)
 
+
+def generate_numbers(message):
+    emit('my_response',
+         {'data': '{' + message['first_name'] + message['last_name'] + 'number: 999 }'},
+         room=message['room'])
+
+
 @socketio.on('join', namespace='/test')
 def join(message):
     join_room(message['room'])
-    print(message['room'], rooms())
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    print(session['receive_count'])
-    emit('my_response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
+
+    request_count = session.get('receive_count', 0) + 1
+    room_name = message['room']
+    first_name = message['first_name']
+    last_name = message['last_name']
+    user_id = message['user_id']
+    # "request_count": {request_count}
+    print(f'Action {request_count}. Request {message}')
+
+    if str(message['room']) not in ROOMS:
+        ROOMS.append(message['room'])
+    my_response = f'"room_name": {room_name}, "first_name": {first_name}, "last_name": {last_name}, "user_id": {user_id}'
+    my_list(message)
+    emit('my_response', {"data": my_response}, callback=generate_numbers(message))
+    background_thread()
 
 @socketio.on('my_room_event', namespace='/test')
 def send_room_message(message, methods=['GET', 'POST']):
